@@ -8,9 +8,7 @@ app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
-def scan(
-    netmask: str = typer.Argument(..., help="Network to scan, e.g. 192.168.0.0/24")
-):
+def scan(netmask: str = typer.Argument(..., help="Network to scan, e.g. 192.168.0.0/24")):
     print("starting", flush=True)
     print(f"python={sys.executable}", flush=True)
     print(f"ping={shutil.which('ping')}", flush=True)
@@ -40,8 +38,7 @@ def scan(
             continue
 
         print(
-            f"{ip_str} rc={result.returncode} "
-            f"stdout={result.stdout!r} stderr={result.stderr!r}",
+            f"{ip_str} rc={result.returncode} stdout={result.stdout!r} stderr={result.stderr!r}",
             flush=True,
         )
 
