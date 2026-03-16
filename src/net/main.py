@@ -1,50 +1,51 @@
+import typer
 import sys
-import shutil
+import socket
 import subprocess
 import ipaddress
-import typer
 
 app = typer.Typer(no_args_is_help=True)
 
-
 @app.command()
-def scan(netmask: str = typer.Argument(..., help="Network to scan, e.g. 192.168.0.0/24")):
-    print("starting", flush=True)
-    print(f"python={sys.executable}", flush=True)
-    print(f"ping={shutil.which('ping')}", flush=True)
-    print(f"arg={netmask}", flush=True)
-
+def scan(netmask: str = typer.Argument(..., help="Netmask to scan (e.g., 192.168.1.0/24)")):
+    """Scan the network for active IP addresses using the provided netmask."""
+    print(f"Scanning network: {netmask}...")
+    
     try:
         network = ipaddress.ip_network(netmask, strict=False)
     except ValueError as e:
-        print(f"invalid network: {e}", file=sys.stderr, flush=True)
+        print(f"Error: Invalid netmask '{netmask}'. {e}")
         raise typer.Exit(code=1)
 
-    print(f"scanning {network}", flush=True)
+    # Simple ping sweep for the entire network
+    # Note: On MacOS, -t 1 is 1 second timeout. -c 1 is 1 packet.
+    # We scan all addresses in the network including network and broadcast
+    # because the user might want to scan a specific IP or a very small range.
+    try:
+        for ip in network:
+            ip_str = str(ip)
+            # Using ping -c 1 -t 1 ip
+            try:
+                result = subprocess.run(
+                    ["ping", "-n", "-c", "1", "-W", "1", ip_str],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                )
+                if result.returncode == 0:
+                    print(ip_str)
+                else:
+                    typer.secho(ip_str, fg=typer.colors.RED, err=True)
+            except (subprocess.TimeoutExpired, KeyboardInterrupt):
+                raise
+    except KeyboardInterrupt:
+        print("\nScan interrupted by user. Exiting...")
+        raise typer.Exit(code=0)
 
-    for ip in network.hosts():
-        ip_str = str(ip)
-        print(f"trying {ip_str}", flush=True)
-
-        try:
-            result = subprocess.run(
-                ["ping", "-n", "-c", "1", "-W", "1", ip_str],
-                capture_output=True,
-                text=True,
-                timeout=3,
-            )
-        except Exception as e:
-            print(f"{ip_str} exception: {e}", file=sys.stderr, flush=True)
-            continue
-
-        print(
-            f"{ip_str} rc={result.returncode} stdout={result.stdout!r} stderr={result.stderr!r}",
-            flush=True,
-        )
-
-        if result.returncode == 0:
-            print(f"UP {ip_str}", flush=True)
-
+@app.command()
+def other():
+    """Dummy command to avoid command name being collapsed."""
+    pass
 
 if __name__ == "__main__":
     app()
