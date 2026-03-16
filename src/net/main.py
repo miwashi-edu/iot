@@ -3,28 +3,19 @@ import subprocess
 import ipaddress
 import typer
 
-app = typer.Typer(add_completion=False)
+app = typer.Typer(no_args_is_help=True)
 
 
-@app.callback(invoke_without_command=True)
-def main(
-    ctx: typer.Context,
-    netmask: str = typer.Argument(None, help="Network to scan, e.g. 192.168.0.0/24"),
-):
-    if ctx.invoked_subcommand is not None:
-        return
-
-    if not netmask:
-        print("Missing network argument", file=sys.stderr, flush=True)
-        raise typer.Exit(code=1)
-
-    print(f"Scanning network: {netmask}...", flush=True)
-
+@app.command()
+def scan(netmask: str = typer.Argument(..., help="Network to scan (e.g. 192.168.0.0/24)")):
+    """Ping sweep a network and print live hosts."""
     try:
         network = ipaddress.ip_network(netmask, strict=False)
     except ValueError as e:
-        print(f"Error: invalid network '{netmask}': {e}", file=sys.stderr, flush=True)
+        print(f"Invalid network: {e}", file=sys.stderr)
         raise typer.Exit(code=1)
+
+    print(f"Scanning {network}...", flush=True)
 
     try:
         for ip in network.hosts():
@@ -44,5 +35,15 @@ def main(
         raise typer.Exit(code=0)
 
 
-if __name__ == "__main__":
+@app.command()
+def other():
+    """Dummy command."""
+    pass
+
+
+def main():
     app()
+
+
+if __name__ == "__main__":
+    main()
