@@ -27,7 +27,7 @@ def scan(netmask: str = typer.Argument(..., help="Netmask to scan (e.g., 192.168
             # Using ping -c 1 -t 1 ip
             try:
                 result = subprocess.run(
-                    ["ping", "-n", "-c", "1", "-W", "1", ip_str],
+                    ["ping", "-n", "-c", "1", "-W", "2", ip_str],
                     capture_output=True,
                     text=True,
                     timeout=3,
