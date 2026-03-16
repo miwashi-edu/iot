@@ -8,43 +8,39 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 def scan(
-    netmask: str = typer.Argument(
-        ..., help="Network to scan, e.g. 192.168.1.0/24"
-    )
+    netmask: str = typer.Argument(..., help="Network to scan, e.g. 192.168.1.0/24")
 ):
-    """Scan a network and print responsive IPs to stdout."""
     print(f"Scanning network: {netmask}...", flush=True)
 
     try:
         network = ipaddress.ip_network(netmask, strict=False)
     except ValueError as e:
-        print(f"Error: invalid network '{netmask}': {e}", file=sys.stderr, flush=True)
-        raise typer.Exit(code=1)
+        print(f"Invalid network: {e}", file=sys.stderr, flush=True)
+        raise typer.Exit(1)
 
-    try:
-        for ip in network.hosts():
-            ip_str = str(ip)
+    for ip in network.hosts():
+        ip_str = str(ip)
+        print(f"trying {ip_str}", flush=True)
 
+        try:
             result = subprocess.run(
-                ["ping", "-n", "-c", "1", "-W", "1", ip_str],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                ["ping", "-n", "-c", "1", "-w", "1", ip_str],
+                capture_output=True,
+                text=True,
+                timeout=2,
             )
+        except Exception as e:
+            print(f"{ip_str} EXCEPTION: {e}", file=sys.stderr, flush=True)
+            continue
 
-            if result.returncode == 0:
-                print(ip_str, flush=True)
-            else:
-                print(ip_str, file=sys.stderr, flush=True)
+        print(
+            f"{ip_str} rc={result.returncode} "
+            f"stdout={result.stdout!r} stderr={result.stderr!r}",
+            flush=True,
+        )
 
-    except KeyboardInterrupt:
-        print("\nScan interrupted.", flush=True)
-        raise typer.Exit(code=0)
-
-
-@app.command()
-def other():
-    """Dummy command."""
-    pass
+        if result.returncode == 0:
+            print(f"UP {ip_str}", flush=True)
 
 
 if __name__ == "__main__":
