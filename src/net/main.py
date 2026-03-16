@@ -35,7 +35,9 @@ def scan(netmask: str = typer.Argument(..., help="Netmask to scan (e.g., 192.168
                 if result.returncode == 0:
                     print(ip_str)
                 else:
-                    typer.secho(ip_str, fg=typer.colors.RED, err=True)
+                    error_msg = result.stderr.strip()
+                    output = f"{ip_str} (error: {error_msg})" if error_msg else ip_str
+                    typer.secho(output, fg=typer.colors.RED, err=True)
             except (subprocess.TimeoutExpired, KeyboardInterrupt):
                 raise
     except KeyboardInterrupt:
