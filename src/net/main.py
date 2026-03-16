@@ -1,50 +1,51 @@
-import typer
 import sys
-import socket
 import subprocess
 import ipaddress
+import typer
 
 app = typer.Typer(no_args_is_help=True)
 
+
 @app.command()
-def scan(netmask: str = typer.Argument(..., help="Netmask to scan (e.g., 192.168.1.0/24)")):
-    """Scan the network for active IP addresses using the provided netmask."""
-    print(f"Scanning network: {netmask}...")
-    
+def scan(
+    netmask: str = typer.Argument(
+        ..., help="Network to scan, e.g. 192.168.1.0/24"
+    )
+):
+    """Scan a network and print responsive IPs to stdout."""
+    print(f"Scanning network: {netmask}...", flush=True)
+
     try:
         network = ipaddress.ip_network(netmask, strict=False)
     except ValueError as e:
-        print(f"Error: Invalid netmask '{netmask}'. {e}")
+        print(f"Error: invalid network '{netmask}': {e}", file=sys.stderr, flush=True)
         raise typer.Exit(code=1)
 
-    # Simple ping sweep for the entire network
-    # Note: On MacOS, -t 1 is 1 second timeout. -c 1 is 1 packet.
-    # We scan all addresses in the network including network and broadcast
-    # because the user might want to scan a specific IP or a very small range.
     try:
-        for ip in network:
+        for ip in network.hosts():
             ip_str = str(ip)
-            # Using ping -c 1 -t 1 ip
-            process = subprocess.Popen(['ping', '-c', '1', '-W', '200', ip_str],
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-            try:
-                stdout, stderr = process.communicate()
-                if process.returncode == 0:
-                    print(ip_str)
-                else:
-                    print(ip_str, file=sys.stderr)
-            except KeyboardInterrupt:
-                process.terminate()
-                raise
+
+            result = subprocess.run(
+                ["ping", "-n", "-c", "1", "-W", "1", ip_str],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+            if result.returncode == 0:
+                print(ip_str, flush=True)
+            else:
+                print(ip_str, file=sys.stderr, flush=True)
+
     except KeyboardInterrupt:
-        print("\nScan interrupted by user. Exiting...")
+        print("\nScan interrupted.", flush=True)
         raise typer.Exit(code=0)
+
 
 @app.command()
 def other():
-    """Dummy command to avoid command name being collapsed."""
+    """Dummy command."""
     pass
+
 
 if __name__ == "__main__":
     app()
