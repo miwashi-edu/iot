@@ -1,19 +1,31 @@
 import typer
 
-app = typer.Typer()
+app = typer.Typer(no_args_is_help=True)
 
-def hello() -> str:
-    return "Hello from iot!"
 
 @app.command()
-def greet(name: str = typer.Argument("World", help="Name to greet")):
+def greet(
+    name: str = typer.Argument("World", help="Name to greet"),
+) -> None:
     """Greet someone by name."""
-    print(f"Hello, {name}!")
+    typer.echo(f"Hello, {name}!")
+
 
 @app.command()
-def version():
+def version() -> None:
     """Show the current version."""
-    print("iot version 0.2.0")
+    typer.echo("iot version 0.2.0")
+
+
+@app.command()
+def hello() -> None:
+    """Print a basic hello message."""
+    typer.echo("Hello from iot!")
+
+
+def main() -> None:
+    app()
+
 
 if __name__ == "__main__":
-    app()
+    main()
